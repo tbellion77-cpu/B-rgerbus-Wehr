@@ -1,0 +1,314 @@
+{
+ "hauptstr": {
+  "name": "Wehr Hauptstr./Seniorenresidenz",
+  "lon": 7.903983,
+  "lat": 47.628648,
+  "approx": true
+ },
+ "elektro": {
+  "name": "Elektro-Center",
+  "lon": 7.903983,
+  "lat": 47.628648,
+  "approx": true
+ },
+ "talstr": {
+  "name": "Talstraße",
+  "lon": 7.903307,
+  "lat": 47.626541,
+  "approx": false
+ },
+ "famz": {
+  "name": "Familienzentrum",
+  "lon": 7.901993,
+  "lat": 47.623609,
+  "approx": false
+ },
+ "aerzte_sued": {
+  "name": "Ärztehaus Bündtenfeldstraße / Süd",
+  "lon": 7.9033,
+  "lat": 47.6218,
+  "approx": false
+ },
+ "aerzte_nord": {
+  "name": "Ärztehaus Bündtenfeldstraße / Nord",
+  "lon": 7.9037,
+  "lat": 47.6222,
+  "approx": false
+ },
+ "dinkelberg": {
+  "name": "Enkendorfstr./Abzw. Dinkelbergstr.",
+  "lon": 7.901458,
+  "lat": 47.620624,
+  "approx": false
+ },
+ "brunnmatt": {
+  "name": "Enkendorfstr./Abzw. Brunnmattstr.",
+  "lon": 7.903393,
+  "lat": 47.615935,
+  "approx": false
+ },
+ "sbg": {
+  "name": "Enkendorfstraße Haltestelle SBG",
+  "lon": 7.906638,
+  "lat": 47.615927,
+  "approx": true
+ },
+ "buchen_hoelzle": {
+  "name": "Buchenweg/Am Hölzle",
+  "lon": 7.916014,
+  "lat": 47.610041,
+  "approx": true
+ },
+ "eichen_birken": {
+  "name": "Eichenweg/Birkenweg",
+  "lon": 7.918537,
+  "lat": 47.609399,
+  "approx": false
+ },
+ "birken_buchen": {
+  "name": "Birkenweg/Buchenweg",
+  "lon": 7.91661,
+  "lat": 47.610169,
+  "approx": false
+ },
+ "novartis": {
+  "name": "Novartis / Rewe / Aldi",
+  "lon": 7.9056,
+  "lat": 47.61972,
+  "approx": false
+ },
+ "mediathek": {
+  "name": "Mediathek",
+  "lon": 7.906247,
+  "lat": 47.626261,
+  "approx": false
+ },
+ "meier_wald": {
+  "name": "Meierhof-/Waldstr.",
+  "lon": 7.909542,
+  "lat": 47.625815,
+  "approx": false
+ },
+ "meier_staufen": {
+  "name": "Meierhof-/Staufenstr.",
+  "lon": 7.913532,
+  "lat": 47.626531,
+  "approx": false
+ },
+ "meier_hachberg": {
+  "name": "Meierhof-/Hachbergstr.",
+  "lon": 7.914301,
+  "lat": 47.627632,
+  "approx": true
+ },
+ "vonschoenau": {
+  "name": "Von-Schönau-Str.",
+  "lon": 7.9127,
+  "lat": 47.6272,
+  "approx": false
+ },
+ "ekz": {
+  "name": "Einkaufszentrum / Ärztehaus",
+  "lon": 7.904855,
+  "lat": 47.630287,
+  "approx": false
+ },
+ "zelg_anfang": {
+  "name": "Anfang Zelgstraße",
+  "lon": 7.902988,
+  "lat": 47.634893,
+  "approx": true
+ },
+ "zelg_rs": {
+  "name": "Zelgstraße Realschule",
+  "lon": 7.903117,
+  "lat": 47.637994,
+  "approx": true
+ },
+ "finken": {
+  "name": "Finkenweg / Mettlerweg",
+  "lon": 7.905262,
+  "lat": 47.637371,
+  "approx": false
+ },
+ "mettler": {
+  "name": "Mettler-/Blumenweg /Görlitzer Straße",
+  "lon": 7.906353,
+  "lat": 47.63836,
+  "approx": true
+ },
+ "haydn": {
+  "name": "Joseph-Haydn-Str. Spielplatz",
+  "lon": 7.904574,
+  "lat": 47.641183,
+  "approx": false
+ },
+ "seeb_mozart": {
+  "name": "Seeboden-/Mozartstraße",
+  "lon": 7.900912,
+  "lat": 47.640539,
+  "approx": false
+ },
+ "seeb_bifang": {
+  "name": "Seebodenstraße/Bifangweg",
+  "lon": 7.900162,
+  "lat": 47.636648,
+  "approx": false
+ },
+ "seeb_bandol": {
+  "name": "Seeboden-/Bandolstraße",
+  "lon": 7.899285,
+  "lat": 47.637311,
+  "approx": true
+ },
+ "friedrich": {
+  "name": "Friedrichstraße",
+  "lon": 7.90425,
+  "lat": 47.633153,
+  "approx": false
+ },
+ "wald_werrach": {
+  "name": "Wald-/Werrachstr.",
+  "lon": 7.908242,
+  "lat": 47.626373,
+  "approx": false
+ },
+ "werrach_schloss": {
+  "name": "Werrachstr./Unterer Schlossweg",
+  "lon": 7.909624,
+  "lat": 47.62854,
+  "approx": false
+ },
+ "werrach_lind": {
+  "name": "Werrach-/Lindstr.",
+  "lon": 7.911166,
+  "lat": 47.63196,
+  "approx": false
+ },
+ "werrach_klingen": {
+  "name": "Werrach-/Klingenstr.",
+  "lon": 7.911614,
+  "lat": 47.633729,
+  "approx": false
+ },
+ "schwimmbad": {
+  "name": "Schwimmbad",
+  "lon": 7.911401,
+  "lat": 47.636243,
+  "approx": false
+ },
+ "todtmoos_klingen": {
+  "name": "Todtmooser Str./Klingenstraße",
+  "lon": 7.909411,
+  "lat": 47.634236,
+  "approx": false
+ },
+ "kirche": {
+  "name": "Katholische Kirche",
+  "lon": 7.901289,
+  "lat": 47.629514,
+  "approx": false
+ },
+ "henkel": {
+  "name": "Fa. Henkel",
+  "lon": 7.91,
+  "lat": 47.6085,
+  "approx": true
+ },
+ "knebelhalde": {
+  "name": "Kreuzmattstr./Abzw. Zur Knebelhalde",
+  "lon": 7.913022,
+  "lat": 47.60396,
+  "approx": false
+ },
+ "diakonie": {
+  "name": "Paul-Gräb-Str. / Diakonie",
+  "lon": 7.915424,
+  "lat": 47.599519,
+  "approx": false
+ },
+ "tagespflege": {
+  "name": "Wehrastraße / Tagespflege",
+  "lon": 7.912656,
+  "lat": 47.595727,
+  "approx": false
+ },
+ "oefl_schule": {
+  "name": "Öflingen Schule",
+  "lon": 7.913321,
+  "lat": 47.592449,
+  "approx": false
+ },
+ "kulturm": {
+  "name": "KulTurm / Kiga St. Michael",
+  "lon": 7.9122,
+  "lat": 47.5903,
+  "approx": true
+ },
+ "kinderarzt": {
+  "name": "Kinderarzt / Basler Straße",
+  "lon": 7.909747,
+  "lat": 47.585054,
+  "approx": true
+ },
+ "brennet": {
+  "name": "Basler Straße / Bahnhof Brennet",
+  "lon": 7.910725,
+  "lat": 47.582284,
+  "approx": false
+ },
+ "brennetweg": {
+  "name": "Brennetweg / Riedstraße",
+  "lon": 7.912047,
+  "lat": 47.586433,
+  "approx": false
+ },
+ "wehratal_kiga": {
+  "name": "Wehratalstraße / Kiga St. Michael",
+  "lon": 7.912573,
+  "lat": 47.589712,
+  "approx": false
+ },
+ "dorfladen": {
+  "name": "Jungholzer Straße / Dorfladen",
+  "lon": 7.914509,
+  "lat": 47.591516,
+  "approx": false
+ },
+ "uhland": {
+  "name": "Uhlandstr./Abzw. Goethestr.",
+  "lon": 7.919795,
+  "lat": 47.58903,
+  "approx": false
+ },
+ "goethe_schiller": {
+  "name": "Goethestr./Abzw.Schillerstr.",
+  "lon": 7.91875,
+  "lat": 47.591695,
+  "approx": false
+ },
+ "goethe_schmad": {
+  "name": "Goethestr./Abzw. Schmadstr.",
+  "lon": 7.917571,
+  "lat": 47.593255,
+  "approx": true
+ },
+ "sonnhalde": {
+  "name": "Sonnhalde",
+  "lon": 7.918672,
+  "lat": 47.595541,
+  "approx": false
+ },
+ "wehratal_diak": {
+  "name": "Wehratalstraße / Diakonie",
+  "lon": 7.915838,
+  "lat": 47.600058,
+  "approx": false
+ },
+ "hemmet": {
+  "name": "Wehr Hemmet/B 518",
+  "lon": 7.913878,
+  "lat": 47.606912,
+  "approx": false
+ }
+}

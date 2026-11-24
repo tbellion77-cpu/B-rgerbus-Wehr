@@ -1,0 +1,3 @@
+tools/.maplibre-gl-*.css
+tools/.artifact.html
+tools/__pycache__/
