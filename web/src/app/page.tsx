@@ -58,12 +58,12 @@ function dayLabel(t: number, now: number) {
   if (d - n < 2 * 86_400_000 && d > n) return "morgen ";
   return new Date(t).toLocaleDateString("de-DE", { weekday: "short" }) + " ";
 }
-function canWebGL2() {
+/** Google Maps läuft auch ohne WebGL (dann flache Karte); Testschalter für die Ansicht ohne Karte: ?ohnekarte */
+function canMap() {
   try {
-    if (new URLSearchParams(location.search).has("ohnekarte")) return false;
-    return !!document.createElement("canvas").getContext("webgl2");
+    return !new URLSearchParams(location.search).has("ohnekarte");
   } catch {
-    return false;
+    return true;
   }
 }
 
@@ -87,7 +87,7 @@ function App() {
 
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 900px)");
-    const read = () => setEnv({ map: canWebGL2(), desktop: mq.matches });
+    const read = () => setEnv({ map: canMap(), desktop: mq.matches });
     read();
     mq.addEventListener?.("change", read);
     const id = setInterval(() => tick((x) => x + 1), 1000);

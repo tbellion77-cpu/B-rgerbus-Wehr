@@ -79,7 +79,7 @@ const readBase = (): Base => {
 };
 
 /** 3D-Bus als WebGL-Ebene über der Google-Karte */
-function createBusOverlay(g: any, getLatest: () => MapBus[]) {
+function createBusOverlay(g: any, getLatest: () => MapBus[], onReady: () => void) {
   const overlay = new g.maps.WebGLOverlayView();
   let THREE: typeof import("three") | null = null;
   let mod: typeof import("./BusModel") | null = null;
@@ -103,9 +103,10 @@ function createBusOverlay(g: any, getLatest: () => MapBus[]) {
     renderer = new THREE.WebGLRenderer({ canvas: gl.canvas as HTMLCanvasElement, context: gl, ...gl.getContextAttributes() });
     renderer.autoClear = false;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
+    onReady();
   };
   overlay.onDraw = ({ transformer }: { gl: WebGL2RenderingContext; transformer: any }) => {
-    if (!THREE || !mod || !renderer) return;
+    if (!THREE || !mod || !renderer) return void overlay.requestRedraw();
     map = map ?? overlay.getMap();
     const vs = getLatest();
     const zoom = map?.getZoom?.() ?? 15;
@@ -189,9 +190,9 @@ export default function BusMap({ getBus, onSelect, onStop, lines, points = [], s
         lib.current = { ...maps, ...marker, ...core, maps: (window as any).google.maps };
         (el.current as any).__gm = m; // Fehlersuche im Browser
         try {
-          const ov = createBusOverlay((window as any).google, () => latest.current);
+          // 3D-Bus nur mit WebGL-Vektorkarte; sonst bleibt der Pfeil-Marker sichtbar
+          const ov = createBusOverlay((window as any).google, () => latest.current, () => (has3d.current = true));
           ov.setMap(m);
-          has3d.current = true;
         } catch {
           has3d.current = false;
         }
@@ -236,7 +237,7 @@ export default function BusMap({ getBus, onSelect, onStop, lines, points = [], s
       d.className = `${s.hsign} ${st.mine ? s.mine : ""}`;
       d.textContent = "H";
       const m = new AdvancedMarkerElement({ map: map.current, position: { lat: st.lat, lng: st.lon }, content: d, zIndex: st.mine ? 20 : 10, gmpClickable: true });
-      m.addListener("click", () => onStopRef.current?.(st.id));
+      m.addEventListener("gmp-click", () => onStopRef.current?.(st.id));
       return m;
     });
   }, [stops, ready]);
