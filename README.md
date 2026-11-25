@@ -46,16 +46,16 @@ Eigenständige Next.js-App (statischer Export, läuft auf jedem Webspace) mit de
 - 3D-Bus (schlichter Kleinbus aus Grundformen, keine Marken) und 3D-Haltestellenschilder (three.js)
 - Feiertage Baden-Württemberg werden berechnet (kein Betrieb)
 - QR-Aushänge je Haltestelle zum Drucken: `/aushang` (Ziel-Adresse über `NEXT_PUBLIC_SITE_URL`)
-- Karte ohne API-Schlüssel: **Luftbild** = Orthophotos 20 cm des LGL BW, einmalig für das Bediengebiet
-  vorberechnet (`npm run luftbild`, z12–z18, ca. 26 MB in `web/public/luftbild`, Lizenz dl-de/by-2-0),
-  darüber Straßennamen von OpenFreeMap; **Karte** = OpenFreeMap (OSM); Gelände: Terrain Tiles (AWS Open Data)
+- Karte: **Google Maps** (Vektorkarte mit Neigung/Drehung), Ansicht „Satellit“ (mit Beschriftung) oder „Karte“.
+  Schlüssel in `web/.env.local` (wird nicht eingecheckt) bzw. beim Hoster als Umgebungsvariable:
+  `NEXT_PUBLIC_GOOGLE_MAPS_KEY=…` und optional `NEXT_PUBLIC_GOOGLE_MAP_ID=…` (eigene Karten-ID, sonst Demo-ID).
+  In der Google Cloud den Schlüssel auf „Websites“ (eigene Domains + localhost) und die Maps JavaScript API beschränken.
 
 ```
 cd web
 npm install
 npm run dev        # http://localhost:5610
 npm run build      # statische Seite in web/out
-npm run luftbild   # nur nötig, wenn sich das Bediengebiet ändert
 ```
 
 ## Offene Punkte – bitte mit dem Bürgerbus-Team klären

@@ -1,13 +1,12 @@
 "use client";
 
-// Karte des BürgerBus: MapLibre mit Luftbild (LGL BW, vorberechnet) bzw. dunkler Straßenkarte (OpenFreeMap),
-// 3D-Bus und 3D-Haltestellen (three.js), Mitfahr-Kamera mit Gelände. Ohne API-Schlüssel.
+// Karte des BürgerBus auf Google Maps (Vektorkarte: Neigung und Drehung), Satellit mit Beschriftung oder Straßenkarte.
+// 3D-Bus über WebGLOverlayView (three.js), Haltestellen als H-Schilder, Mitfahr-Kamera.
+// Schlüssel: NEXT_PUBLIC_GOOGLE_MAPS_KEY (nur in .env.local bzw. beim Hoster, nie im Repo; in der Google Cloud
+// auf die eigenen Domains beschränken). Eigene Karten-ID: NEXT_PUBLIC_GOOGLE_MAP_ID (sonst Google-Demo-ID).
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useRef, useState } from "react";
-import * as maplibregl from "maplibre-gl";
-import type { Map as MLMap, Marker } from "maplibre-gl";
-import { BASE_LABEL, TERRAIN, styleFor, type BaseMap } from "./styles";
-import type { LayerStop } from "./StopLayer";
-import type { LayerBus } from "./BusLayer";
+import { importLibrary, setOptions } from "@googlemaps/js-api-loader";
 import s from "./BusMap.module.css";
 
 export interface MapBus {
@@ -32,288 +31,319 @@ export interface MapPoint {
   lat: number;
   label: string;
 }
+export interface MapStop {
+  id: string;
+  lon: number;
+  lat: number;
+  /** Haltestelle des Fahrgasts: größer, mit Ring */
+  mine?: boolean;
+}
+type Pad = { top: number; bottom: number; left: number; right: number };
 
 interface Props {
   getBus: () => MapBus[];
   onSelect?: (id: string) => void;
+  onStop?: (id: string) => void;
   lines: MapLine[];
   points?: MapPoint[];
-  stops3d?: LayerStop[];
+  stops?: MapStop[];
   /** ändert sich → auf Linien/Punkte zoomen */
   fitKey?: string;
-  fitPadding?: { top: number; bottom: number; left: number; right: number };
-  /** Mitfahr-Kamera: folgt dem Bus geneigt, in Fahrtrichtung, mit Gelände */
-  follow?: { pitch: number; zoom: number; pad: { top: number; bottom: number; left: number; right: number } } | null;
-  /** schwächere Handys: kein Gelände, weniger Pixel */
-  lite?: boolean;
+  fitPadding?: Pad;
+  /** Mitfahr-Kamera: folgt dem Bus geneigt und in Fahrtrichtung */
+  follow?: { tilt: number; zoom: number } | null;
   className?: string;
 }
 
+const KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY ?? "";
+const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAP_ID || "DEMO_MAP_ID";
 const STORE = "bb-wehr-karte";
 const ACCENT = 0xf2a516;
-const readBase = (): BaseMap => {
+type Base = "hybrid" | "roadmap";
+const BASE_LABEL: Record<Base, string> = { hybrid: "Satellit", roadmap: "Karte" };
+
+let configured = false;
+function loadMaps() {
+  if (!configured) {
+    setOptions({ key: KEY, v: "weekly", language: "de", region: "DE" });
+    configured = true;
+  }
+  return Promise.all([importLibrary("maps"), importLibrary("marker"), importLibrary("core")]) as Promise<any[]>;
+}
+const readBase = (): Base => {
   try {
-    return localStorage.getItem(STORE) === "karte" ? "karte" : "luftbild";
+    return localStorage.getItem(STORE) === "roadmap" ? "roadmap" : "hybrid";
   } catch {
-    return "luftbild";
+    return "hybrid";
   }
 };
 
-export default function BusMap({ getBus, onSelect, lines, points = [], stops3d, fitKey, fitPadding, follow = null, lite = false, className }: Props) {
+/** 3D-Bus als WebGL-Ebene über der Google-Karte */
+function createBusOverlay(g: any, getLatest: () => MapBus[]) {
+  const overlay = new g.maps.WebGLOverlayView();
+  let THREE: typeof import("three") | null = null;
+  let mod: typeof import("./BusModel") | null = null;
+  let scene: any, camera: any, renderer: any;
+  const roots = new Map<string, any>();
+  let map: any;
+  Promise.all([import("three"), import("./BusModel")]).then(([t, m]) => {
+    THREE = t;
+    mod = m;
+    overlay.requestRedraw();
+  });
+  overlay.onAdd = () => {};
+  overlay.onContextRestored = ({ gl }: { gl: WebGL2RenderingContext }) => {
+    if (!THREE) return void setTimeout(() => overlay.onContextRestored({ gl }), 200);
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera();
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x2a2a2e, 2.3));
+    const sun = new THREE.DirectionalLight(0xffffff, 2.1);
+    sun.position.set(-0.6, 0.4, 1); // Kartenraum: z = oben
+    scene.add(sun);
+    renderer = new THREE.WebGLRenderer({ canvas: gl.canvas as HTMLCanvasElement, context: gl, ...gl.getContextAttributes() });
+    renderer.autoClear = false;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+  };
+  overlay.onDraw = ({ transformer }: { gl: WebGL2RenderingContext; transformer: any }) => {
+    if (!THREE || !mod || !renderer) return;
+    map = map ?? overlay.getMap();
+    const vs = getLatest();
+    const zoom = map?.getZoom?.() ?? 15;
+    for (const [id, r] of roots)
+      if (!vs.some((v) => v.id === id)) {
+        scene.remove(r);
+        roots.delete(id);
+      }
+    // ein Bus: Kamera am Bus verankern (Meter-Koordinaten x = Ost, y = Nord, z = oben)
+    const v = vs[0];
+    if (v) {
+      let r = roots.get(v.id);
+      if (!r) {
+        r = new THREE.Group();
+        const inner = mod.busModel(ACCENT);
+        inner.rotation.x = Math.PI / 2; // Modell-Y (oben) → z
+        r.add(inner);
+        r.traverse((o: any) => (o.frustumCulled = false));
+        scene.add(r);
+        roots.set(v.id, r);
+      }
+      const mpp = (156543.03 * Math.cos((v.lat * Math.PI) / 180)) / 2 ** zoom;
+      const k = Math.max(1, (mod.MIN_PX * mpp) / mod.LEN);
+      r.scale.setScalar(k);
+      r.rotation.z = Math.PI - (v.course * Math.PI) / 180;
+      camera.projectionMatrix.fromArray(transformer.fromLatLngAltitude({ lat: v.lat, lng: v.lon, altitude: 0 }));
+      renderer.render(scene, camera);
+      renderer.resetState();
+    }
+    overlay.requestRedraw(); // dauerhaft zeichnen, solange die Karte offen ist
+  };
+  return overlay;
+}
+
+export default function BusMap({ getBus, onSelect, onStop, lines, points = [], stops = [], fitKey, fitPadding, follow = null, className }: Props) {
   const el = useRef<HTMLDivElement>(null);
-  const map = useRef<MLMap | null>(null);
-  const [base, setBase] = useState<BaseMap>("luftbild");
-  const [ready, setReady] = useState(0);
-  const busLayer = useRef<{ update: (v: LayerBus[]) => void } | null>(null);
-  const stopLayer = useRef<{ update: (v: LayerStop[]) => void } | null>(null);
-  const markers = useRef(new Map<string, { m: Marker; el: HTMLButtonElement }>());
-  const pointMarkers = useRef<Marker[]>([]);
+  const map = useRef<any>(null);
+  const lib = useRef<any>(null);
+  const [ready, setReady] = useState(false);
+  const [err, setErr] = useState<string | null>(KEY ? null : "Google-Kartenschlüssel fehlt (NEXT_PUBLIC_GOOGLE_MAPS_KEY in web/.env.local).");
+  const [base, setBase] = useState<Base>("hybrid");
+  const polys = useRef<any[]>([]);
+  const stopMarkers = useRef<any[]>([]);
+  const pointMarkers = useRef<any[]>([]);
+  const busMarker = useRef<{ m: any; el: HTMLButtonElement } | null>(null);
+  const latest = useRef<MapBus[]>([]);
   const has3d = useRef(false);
   const linesRef = useRef(lines);
   linesRef.current = lines;
-  const stopsRef = useRef(stops3d);
-  stopsRef.current = stops3d;
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
+  const onStopRef = useRef(onStop);
+  onStopRef.current = onStop;
   const followRef = useRef(follow);
   followRef.current = follow;
 
-  // Karte anlegen (erst wenn der Kartenstil geladen ist)
+  // Karte anlegen
   useEffect(() => {
-    if (!el.current) return;
-    if (!maplibregl.getWorkerUrl().includes("/maplibre/")) maplibregl.setWorkerUrl(`${window.location.origin}/maplibre/maplibre-gl-worker.mjs`);
-    const b = readBase();
-    setBase(b);
+    if (!KEY || !el.current) return;
     let alive = true;
-    let ro: ResizeObserver | null = null;
-    let m: MLMap | null = null;
-    styleFor(b, window.location.origin)
-      .then((style) => {
+    (window as any).gm_authFailure = () => setErr("Google hat den Kartenschlüssel abgelehnt (Maps JavaScript API nicht freigeschaltet oder Domain nicht erlaubt).");
+    loadMaps()
+      .then(([maps, marker, core]) => {
         if (!alive || !el.current) return;
-        m = new maplibregl.Map({
-          container: el.current,
-          style,
-          center: [7.905, 47.615],
-          zoom: 13,
-          attributionControl: { compact: true },
-          maxPitch: 70,
-          pixelRatio: Math.min(window.devicePixelRatio || 1, lite ? 1.5 : 2),
-          maxTileCacheSize: lite ? 150 : 400,
-          refreshExpiredTiles: false,
-          ...(lite ? { fadeDuration: 0 } : {}),
+        const b = readBase();
+        setBase(b);
+        const m = new maps.Map(el.current, {
+          center: { lat: 47.615, lng: 7.905 },
+          zoom: 14,
+          mapId: MAP_ID,
+          renderingType: "VECTOR",
+          mapTypeId: b,
+          tiltInteractionEnabled: true,
+          headingInteractionEnabled: true,
+          disableDefaultUI: true,
+          zoomControl: true,
+          gestureHandling: "greedy",
+          clickableIcons: false,
         });
-        const mm = m;
-        map.current = mm;
-        (el.current as HTMLDivElement & { __ml?: MLMap }).__ml = mm; // Fehlersuche im Browser
-        mm.on("style.load", () => {
-          setReady((r) => r + 1);
-          import("./StopLayer")
-            .then(({ createStopLayer }) => {
-              if (map.current !== mm || mm.getLayer("stops-3d")) return;
-              const layer = createStopLayer();
-              stopLayer.current = layer;
-              mm.addLayer(layer, mm.getLayer("bus-3d") ? "bus-3d" : undefined);
-              layer.update(stopsRef.current ?? []);
-            })
-            .catch(() => {});
-          import("./BusLayer")
-            .then(({ createBusLayer }) => {
-              if (map.current !== mm || mm.getLayer("bus-3d")) return;
-              const layer = createBusLayer(ACCENT);
-              busLayer.current = layer;
-              mm.addLayer(layer);
-              has3d.current = true;
-            })
-            .catch(() => (has3d.current = false));
-        });
-        // Sicherheitsnetz: Container beim Anlegen noch nicht ausgemessen → Größe kurz danach neu bestimmen
-        const kick = () => [300, 1200, 3000].forEach((ms) => window.setTimeout(() => map.current === mm && (mm.resize(), mm.triggerRepaint()), ms));
-        mm.on("load", kick);
-        mm.on("style.load", kick);
-        mm.once("load", () => el.current?.querySelector(".maplibregl-compact-show")?.classList.remove("maplibregl-compact-show"));
-        ro = new ResizeObserver(() => mm.resize());
-        ro.observe(el.current);
+        map.current = m;
+        lib.current = { ...maps, ...marker, ...core, maps: (window as any).google.maps };
+        (el.current as any).__gm = m; // Fehlersuche im Browser
+        try {
+          const ov = createBusOverlay((window as any).google, () => latest.current);
+          ov.setMap(m);
+          has3d.current = true;
+        } catch {
+          has3d.current = false;
+        }
+        setReady(true);
       })
-      .catch((e) => console.error("Kartenstil nicht geladen", e));
+      .catch((e) => setErr(`Google Maps konnte nicht geladen werden: ${String(e?.message ?? e)}`));
     return () => {
       alive = false;
-      ro?.disconnect();
-      markers.current.forEach(({ m: mk }) => mk.remove());
-      markers.current.clear();
-      m?.remove();
-      map.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const switchBase = (b: BaseMap) => {
+  const switchBase = (b: Base) => {
     setBase(b);
     try {
       localStorage.setItem(STORE, b);
     } catch {}
-    const m = map.current;
-    if (!m) return;
-    busLayer.current = null;
-    stopLayer.current = null;
-    styleFor(b, window.location.origin)
-      .then((st) => map.current === m && m.setStyle(st, { diff: false }))
-      .catch((e) => console.error("Kartenstil nicht geladen", e));
+    map.current?.setMapTypeId(b);
   };
 
-  // Gelände nur in der Mitfahr-Ansicht (Hänge des Wehratals), sonst flach und leicht
-  const camOn = Boolean(follow);
+  // Linien: dunkle Kontur + Linienfarbe
   useEffect(() => {
-    const m = map.current;
-    if (!m || !ready) return;
-    if (camOn && !lite) {
-      if (!m.getSource("terrain")) m.addSource("terrain", TERRAIN);
-      m.setTerrain({ source: "terrain", exaggeration: 1 });
-    } else if (m.getTerrain()) m.setTerrain(null);
-  }, [camOn, ready, lite]);
-
-  // Mitfahr-Kamera ein/aus
-  const camPending = useRef(false);
-  const camWas = useRef(false);
-  useEffect(() => {
-    const m = map.current;
-    if (!m) return;
-    if (camOn) camPending.current = true;
-    else if (camWas.current) {
-      m.setPadding({ top: 0, bottom: 0, left: 0, right: 0 });
-      m.easeTo({ pitch: 0, bearing: 0, duration: 900 });
-    }
-    camWas.current = camOn;
-  }, [camOn]);
-
-  // Linien nach jedem Stilwechsel neu setzen
-  useEffect(() => {
-    const m = map.current;
-    if (!m || !ready) return;
-    const want = new Set(lines.map((l) => `ln-${l.id}`));
-    for (const layer of m.getStyle().layers ?? []) if (layer.id.startsWith("ln-") && !want.has(layer.id.replace(/-casing$/, ""))) m.removeLayer(layer.id);
-    for (const id of Object.keys(m.getStyle().sources ?? {})) if (id.startsWith("ln-") && !want.has(id)) m.removeSource(id);
-    const below = m.getLayer("stops-3d") ? "stops-3d" : m.getLayer("bus-3d") ? "bus-3d" : undefined;
-    for (const l of lines) {
-      const id = `ln-${l.id}`;
-      const data = { type: "Feature" as const, properties: {}, geometry: { type: "LineString" as const, coordinates: l.coords } };
-      const src = m.getSource(id) as maplibregl.GeoJSONSource | undefined;
+    if (!ready) return;
+    const { Polyline } = lib.current;
+    polys.current.forEach((p) => p.setMap(null));
+    polys.current = lines.flatMap((l) => {
+      const path = l.coords.map(([lon, lat]) => ({ lat, lng: lon }));
       const w = l.width ?? 4;
-      if (src) {
-        src.setData(data);
-        m.setPaintProperty(id, "line-color", l.color);
-        m.setPaintProperty(id, "line-width", w);
-        m.setPaintProperty(id, "line-opacity", l.opacity ?? 0.95);
-        m.setPaintProperty(`${id}-casing`, "line-width", w + 3);
-        m.setPaintProperty(`${id}-casing`, "line-opacity", (l.opacity ?? 0.95) * 0.55);
-        continue;
-      }
-      m.addSource(id, { type: "geojson", data });
-      // dunkle Kontur: Linien bleiben auf dem hellen Luftbild gut lesbar
-      m.addLayer({ id: `${id}-casing`, type: "line", source: id, layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": "#0b0c0e", "line-width": w + 3, "line-opacity": (l.opacity ?? 0.95) * 0.55 } }, below);
-      m.addLayer({ id, type: "line", source: id, layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": l.color, "line-width": w, "line-opacity": l.opacity ?? 0.95 } }, below);
-    }
+      return [
+        new Polyline({ map: map.current, path, strokeColor: "#0b0c0e", strokeOpacity: (l.opacity ?? 0.95) * 0.55, strokeWeight: w + 3, zIndex: 1, clickable: false }),
+        new Polyline({ map: map.current, path, strokeColor: l.color, strokeOpacity: l.opacity ?? 0.95, strokeWeight: w, zIndex: 2, clickable: false }),
+      ];
+    });
   }, [lines, ready]);
 
+  // Haltestellen als H-Schilder (antippbar)
   useEffect(() => {
-    stopLayer.current?.update(stops3d ?? []);
-  }, [stops3d, ready]);
+    if (!ready) return;
+    const { AdvancedMarkerElement } = lib.current;
+    stopMarkers.current.forEach((m) => (m.map = null));
+    stopMarkers.current = stops.map((st) => {
+      const d = document.createElement("div");
+      d.className = `${s.hsign} ${st.mine ? s.mine : ""}`;
+      d.textContent = "H";
+      const m = new AdvancedMarkerElement({ map: map.current, position: { lat: st.lat, lng: st.lon }, content: d, zIndex: st.mine ? 20 : 10, gmpClickable: true });
+      m.addListener("click", () => onStopRef.current?.(st.id));
+      return m;
+    });
+  }, [stops, ready]);
 
-  // Beschriftete Punkte (Ihre Haltestelle, nächster Halt)
+  // Beschriftungen (Ihre Haltestelle, nächster Halt)
   useEffect(() => {
-    const m = map.current;
-    if (!m) return;
-    pointMarkers.current.forEach((p) => p.remove());
+    if (!ready) return;
+    const { AdvancedMarkerElement } = lib.current;
+    pointMarkers.current.forEach((m) => (m.map = null));
     pointMarkers.current = points.map((p) => {
       const d = document.createElement("div");
-      d.className = s.label;
+      d.className = `${s.label} ${s.glabel}`;
       d.textContent = p.label;
-      return new maplibregl.Marker({ element: d, anchor: "bottom-left", offset: [10, -26] }).setLngLat([p.lon, p.lat]).addTo(m);
+      return new AdvancedMarkerElement({ map: map.current, position: { lat: p.lat, lng: p.lon }, content: d, zIndex: 30 });
     });
-  }, [points]);
+  }, [points, ready]);
 
   // Auf Inhalte zoomen
   useEffect(() => {
     const m = map.current;
-    if (!m || !fitKey || followRef.current) return;
+    if (!ready || !m || !fitKey || followRef.current) return;
     const all = [...linesRef.current.flatMap((l) => l.coords), ...points.map((p) => [p.lon, p.lat] as [number, number])];
     if (!all.length) return;
-    const bb = new maplibregl.LngLatBounds(all[0], all[0]);
-    all.forEach((c) => bb.extend(c));
-    const W = m.getContainer().clientWidth, H = m.getContainer().clientHeight;
+    const b = new lib.current.LatLngBounds();
+    all.forEach(([lon, lat]) => b.extend({ lat, lng: lon }));
+    const W = el.current!.clientWidth, H = el.current!.clientHeight;
     let pad = fitPadding ?? { top: 60, bottom: 60, left: 60, right: 60 };
     if (pad.left + pad.right > W * 0.8 || pad.top + pad.bottom > H * 0.85) pad = { top: 60, bottom: Math.round(H * 0.45), left: 24, right: 24 };
-    m.fitBounds(bb, { padding: pad, duration: 900, maxZoom: 16.5, bearing: 0, pitch: 0 });
+    m.moveCamera({ tilt: 0, heading: 0 });
+    m.fitBounds(b, pad);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fitKey, ready > 0]);
+  }, [fitKey, ready]);
 
-  // Bus animieren: 3D-Ebene jedes Frame, Marker darüber als Tippfläche (und Ersatz ohne 3D)
+  // Mitfahr-Kamera aus → zurück in die Draufsicht
+  const camOn = Boolean(follow);
+  const camWas = useRef(false);
   useEffect(() => {
+    if (!camOn && camWas.current) map.current?.moveCamera({ tilt: 0, heading: 0 });
+    camWas.current = camOn;
+  }, [camOn]);
+
+  // Bus: Position jedes Frame, Kamera höchstens alle 700 ms nachführen (sonst lädt Google keine Kacheln nach)
+  useEffect(() => {
+    if (!ready) return;
     let raf = 0;
-    let lastFollow = 0;
+    let lastCam = 0;
+    const { AdvancedMarkerElement } = lib.current;
     const loop = (ts: number) => {
       const m = map.current;
-      if (m) {
-        const vs = getBus();
-        busLayer.current?.update(vs.map((v) => ({ id: v.id, lon: v.lon, lat: v.lat, course: v.course, moving: v.moving })));
-        for (const [id, e] of markers.current)
-          if (!vs.some((v) => v.id === id)) {
-            e.m.remove();
-            markers.current.delete(id);
-          }
-        for (const v of vs) {
-          let e = markers.current.get(v.id);
-          if (!e) {
-            const d = document.createElement("button");
-            d.type = "button";
-            d.className = s.veh;
-            d.setAttribute("aria-label", "Bürgerbus antippen");
-            d.innerHTML = `<span class="${s.dot}"><svg viewBox="0 0 24 24" class="${s.arrow}"><path d="M12 3 19 20 12 16 5 20Z"/></svg></span><span class="${s.tag}"></span>`;
-            d.addEventListener("click", (ev) => {
-              ev.stopPropagation();
-              onSelectRef.current?.(v.id);
-            });
-            e = { m: new maplibregl.Marker({ element: d }).setLngLat([v.lon, v.lat]).addTo(m), el: d };
-            markers.current.set(v.id, e);
-          }
-          e.m.setLngLat([v.lon, v.lat]);
-          e.el.dataset.three = has3d.current ? "1" : "0";
-          e.el.style.setProperty("--c", v.color);
-          e.el.style.setProperty("--rot", `${v.course - m.getBearing()}deg`);
-          const tag = e.el.lastElementChild as HTMLSpanElement;
-          if (tag.textContent !== v.label) tag.textContent = v.label;
-          const cam = followRef.current;
-          if (cam && ts - lastFollow > 900) {
-            lastFollow = ts;
-            if (camPending.current) {
-              camPending.current = false;
-              lastFollow = ts + 900;
-              m.easeTo({ center: [v.lon, v.lat], zoom: cam.zoom, pitch: cam.pitch, bearing: v.course, padding: cam.pad, duration: 1600 });
-            } else if (v.moving) {
-              const cur = m.getBearing();
-              const diff = ((((v.course - cur) % 360) + 540) % 360) - 180;
-              m.easeTo({ center: [v.lon, v.lat], bearing: cur + Math.max(-20, Math.min(20, diff * 0.5)), padding: cam.pad, duration: 850, easing: (x) => x });
-            } else m.easeTo({ center: [v.lon, v.lat], padding: cam.pad, duration: 850, easing: (x) => x });
-          }
+      const vs = getBus();
+      latest.current = vs;
+      const v = vs[0];
+      if (!v && busMarker.current) {
+        busMarker.current.m.map = null;
+        busMarker.current = null;
+      }
+      if (v) {
+        if (!busMarker.current) {
+          const d = document.createElement("button");
+          d.type = "button";
+          d.className = `${s.veh} ${s.gveh}`;
+          d.setAttribute("aria-label", "Bürgerbus antippen");
+          d.innerHTML = `<span class="${s.dot}"><svg viewBox="0 0 24 24" class="${s.arrow}"><path d="M12 3 19 20 12 16 5 20Z"/></svg></span><span class="${s.tag}"></span>`;
+          d.addEventListener("click", (ev) => {
+            ev.stopPropagation();
+            onSelectRef.current?.(v.id);
+          });
+          busMarker.current = { m: new AdvancedMarkerElement({ map: m, position: { lat: v.lat, lng: v.lon }, content: d, zIndex: 50 }), el: d };
+        }
+        const { m: mk, el: e } = busMarker.current;
+        mk.position = { lat: v.lat, lng: v.lon };
+        e.dataset.three = has3d.current ? "1" : "0";
+        e.style.setProperty("--c", v.color);
+        e.style.setProperty("--rot", `${v.course - (m.getHeading?.() ?? 0)}deg`);
+        const tag = e.lastElementChild as HTMLSpanElement;
+        if (tag.textContent !== v.label) tag.textContent = v.label;
+        const cam = followRef.current;
+        if (cam && ts - lastCam > 700) {
+          lastCam = ts;
+          // sanft in Fahrtrichtung drehen (höchstens 25° je Schritt)
+          const cur = m.getHeading?.() ?? 0;
+          const diff = ((((v.course - cur) % 360) + 540) % 360) - 180;
+          const heading = v.moving ? cur + Math.max(-25, Math.min(25, diff * 0.6)) : cur;
+          m.moveCamera({ center: { lat: v.lat, lng: v.lon }, zoom: cam.zoom, tilt: cam.tilt, heading });
         }
       }
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [getBus]);
+  }, [getBus, ready]);
 
   return (
     <div className={`${s.wrap} ${className ?? ""}`}>
       <div ref={el} className={s.map} />
-      <div className={s.controls} data-chrome="map">
-        <div className={s.seg} role="group" aria-label="Kartenansicht">
-          {(Object.keys(BASE_LABEL) as BaseMap[]).map((b) => (
-            <button key={b} type="button" className={b === base ? s.on : ""} onClick={() => switchBase(b)} aria-pressed={b === base}>
-              {BASE_LABEL[b]}
-            </button>
-          ))}
+      {err && <div className={s.nokey}>{err}</div>}
+      {!err && (
+        <div className={s.controls} data-chrome="map">
+          <div className={s.seg} role="group" aria-label="Kartenansicht">
+            {(Object.keys(BASE_LABEL) as Base[]).map((b) => (
+              <button key={b} type="button" className={b === base ? s.on : ""} onClick={() => switchBase(b)} aria-pressed={b === base}>
+                {BASE_LABEL[b]}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

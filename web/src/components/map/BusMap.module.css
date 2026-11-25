@@ -274,3 +274,49 @@
   -webkit-backdrop-filter: none;
   background: rgba(14, 15, 18, 0.9);
 }
+
+/* Google Maps: Marker-Inhalte liegen im Fluss (nicht absolut) */
+.gveh {
+  position: relative !important;
+  transform: translateY(50%);
+}
+/* Haltestelle: rundes H-Schild (gelb/grün wie Zeichen 224) */
+.hsign {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #f6cf16;
+  border: 3px solid #1c7c3c;
+  color: #1c7c3c;
+  font: 800 14px/1 Arial, Helvetica, sans-serif;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45);
+  transform: translateY(50%);
+}
+.hsign.mine {
+  width: 36px;
+  height: 36px;
+  font-size: 19px;
+  outline: 4px solid var(--signal);
+  outline-offset: 2px;
+}
+.glabel {
+  transform: translate(calc(50% + 26px), 50%);
+}
+.nokey {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  text-align: center;
+  color: var(--mute);
+  font-size: 17px;
+  background: #0d0e10;
+}
+@media (min-width: 900px) {
+  .nokey {
+    padding-left: 480px;
+  }
+}

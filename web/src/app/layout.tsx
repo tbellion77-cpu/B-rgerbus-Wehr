@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { Atkinson_Hyperlegible } from "next/font/google";
-import "maplibre-gl/dist/maplibre-gl.css";
 import "./globals.css";
 
 // Atkinson Hyperlegible: für Menschen mit Sehschwäche entwickelt

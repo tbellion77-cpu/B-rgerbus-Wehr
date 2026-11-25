@@ -238,9 +238,9 @@ function App() {
   }, [sel, stopId, progKey, lineSel, bus?.trip.linie]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const nextStopId = sel && inWindow ? (sel.trip.st.find((x) => x.t > now)?.id ?? null) : null;
-  const stops3d = useMemo(() => {
-    // Übersicht ohne Masten (54 Halte wären zu unruhig); sonst die Halte der gewählten Linie bzw. Fahrt
-    const ids = sel ? sel.trip.st.map((x) => x.id) : lineSel ? LINE[lineSel].stops.map((x) => x.id) : stopId ? [stopId] : [];
+  const stopMarks = useMemo(() => {
+    // Übersicht: alle Halte antippbar; sonst die Halte der gewählten Linie bzw. Fahrt
+    const ids = sel ? sel.trip.st.map((x) => x.id) : lineSel ? LINE[lineSel].stops.map((x) => x.id) : stopId ? linesAt(stopId).flatMap((l) => LINE[l].stops.map((x) => x.id)) : STOP_LIST.map((x) => x.id);
     return [...new Set(ids)].map((id) => ({ id, lon: STOPS[id].lon, lat: STOPS[id].lat, mine: id === stopId }));
   }, [sel, stopId, lineSel]);
   const points = useMemo<MapPoint[]>(() => {
@@ -565,8 +565,7 @@ function App() {
       </details>
       <p className={s.legal}>
         {SOURCE}. Der Bürgerbus fährt nicht an Wochenenden und gesetzlichen Feiertagen. Die Position wird derzeit aus dem Fahrplan berechnet; Verspätungen sind noch nicht
-        sichtbar. Datenschutz: Von Fahrgästen werden keine Daten erhoben, Ihr Standort („Nähe“) bleibt in Ihrem Browser. Luftbild © LGL BW (dl-de/by-2-0), Karte ©
-        OpenStreetMap-Mitwirkende, OpenFreeMap.
+        sichtbar. Datenschutz: Von Fahrgästen werden keine Daten erhoben, Ihr Standort („Nähe“) bleibt in Ihrem Browser. Karte: Google Maps (es gelten die Datenschutzhinweise von Google).
       </p>
     </>
   );
@@ -579,11 +578,11 @@ function App() {
           onSelect={sel ? undefined : () => setBusCard(true)}
           lines={lines}
           points={points}
-          stops3d={stops3d}
+          stops={stopMarks}
+          onStop={pickStop}
           fitKey={follow3d ? undefined : `${stopId}-${lineSel}-${sel?.key}-${env.desktop ? "d" : open ? "o" : "c"}-${sizes.peek}-${view}`}
           fitPadding={fitPadding}
-          follow={follow3d ? { pitch: 58, zoom: 17, pad: env.desktop ? { top: 140, bottom: 0, left: 440, right: 0 } : { top: 140, bottom: visible, left: 0, right: 0 } } : null}
-          lite={!env.desktop}
+          follow={follow3d ? { tilt: 60, zoom: 18 } : null}
           className={s.map}
         />
       ) : (
