@@ -1,0 +1,284 @@
+:root {
+  /* BürgerBus Wehr: Graphit mit Bus-Gelb */
+  --ink: #0b0c0e;
+  --ink-2: #131417;
+  --ink-3: #1c1d21;
+  --bone: #f3f0ea;
+  --signal: #f2a516;
+  --signal-soft: #ffc24a;
+  --mute: #b4b6bd;
+  --mute-2: #8d9098;
+  /* Leitstand: Graphit-Glas */
+  --glass: rgba(20, 21, 25, 0.7);
+  --glass-strong: rgba(20, 21, 25, 0.86);
+  --card: rgba(255, 255, 255, 0.035);
+  --card-hover: rgba(255, 255, 255, 0.06);
+  --line: rgba(255, 255, 255, 0.08);
+  --line-2: rgba(255, 255, 255, 0.14);
+  --ok: #5fd68a;
+  --warn: #f2b44a;
+  --alert: #e5484d;
+  --wa: #3fcf74;
+  --serif: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  --sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --r: 20px;
+  --r-sm: 14px;
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--ink);
+  color: var(--bone);
+  font-family: var(--sans);
+  font-size: 17px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+  font-feature-settings: "tnum" 1;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+button {
+  cursor: pointer;
+}
+::selection {
+  background: var(--signal);
+  color: var(--ink);
+}
+:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* Glas-Paneel */
+.glass {
+  background: var(--glass);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  backdrop-filter: blur(22px) saturate(1.35);
+  -webkit-backdrop-filter: blur(22px) saturate(1.35);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.eyebrow {
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--mute);
+}
+
+.serif {
+  font-family: var(--serif);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+.serif em {
+  color: var(--signal);
+}
+
+.num {
+  font-weight: 300;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 1px solid var(--line-2);
+  background: var(--card);
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background 0.2s var(--ease), border-color 0.2s var(--ease), transform 0.15s var(--ease);
+}
+.btn:hover {
+  background: var(--card-hover);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+.btn:active {
+  transform: scale(0.97);
+}
+.btn svg {
+  width: 17px;
+  height: 17px;
+}
+.btn-signal {
+  background: var(--signal);
+  border-color: var(--signal);
+  color: #140a03;
+}
+.btn-signal:hover {
+  background: var(--signal-soft);
+  border-color: var(--signal-soft);
+}
+.btn:disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 13px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mute);
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    color 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease,
+    transform 140ms ease-out;
+}
+.chip:active {
+  transform: scale(0.96);
+}
+@media (hover: hover) and (pointer: fine) {
+  .chip:hover {
+    color: var(--bone);
+    border-color: var(--line-2);
+  }
+}
+.chip[aria-pressed="true"] {
+  background: var(--bone);
+  border-color: var(--bone);
+  color: var(--ink);
+}
+.chip b {
+  font-weight: 700;
+  opacity: 0.7;
+}
+
+.dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+
+.scroll {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+}
+
+.maplibregl-ctrl-attrib {
+  background: rgba(12, 13, 15, 0.6) !important;
+  color: var(--mute-2) !important;
+  font-size: 10px !important;
+}
+.maplibregl-ctrl-attrib a {
+  color: var(--mute) !important;
+}
+.maplibregl-ctrl-attrib-button {
+  filter: invert(1);
+}
+/* Quellenangabe kompakt: nur „i“, Text bei Hover/Fokus */
+.maplibregl-ctrl-attrib.maplibregl-compact:not(:hover):not(:focus-within) .maplibregl-ctrl-attrib-inner {
+  display: none;
+}
+.maplibregl-ctrl-attrib.maplibregl-compact:not(:hover):not(:focus-within) {
+  min-height: 24px;
+  min-width: 24px; /* sonst ragt das „i“ links aus dem Bild, wenn die Leiste links verankert ist */
+  padding: 0 !important;
+}
+
+/* ---------- Vollansicht der Karte (Einzeltipp auf die Karte, siehe lib/immersive.ts) ---------- */
+[data-chrome] {
+  transition:
+    transform 280ms var(--ease-drawer),
+    opacity 200ms var(--ease-drawer),
+    visibility 0s linear 0s;
+}
+[data-chrome="sheet"] {
+  /* das Panel bewegt sich per inline-transform (Feder); hier nur ein-/ausblenden */
+  transition:
+    opacity 200ms var(--ease-drawer),
+    visibility 0s linear 0s;
+}
+:root[data-immersive] [data-chrome] {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    transform 240ms var(--ease-drawer),
+    opacity 180ms ease-out,
+    visibility 0s linear 240ms;
+}
+/* Kopfleiste und Menü verlassen den Fluss, damit die Karte die volle Höhe bekommt */
+:root[data-immersive] [data-chrome="top"] {
+  position: absolute;
+  inset: 0 0 auto;
+  transform: translateY(-100%);
+}
+:root[data-immersive] [data-chrome="bottom"] {
+  position: absolute;
+  inset: auto 0 0;
+  transform: translateY(100%);
+}
+:root[data-immersive] [data-chrome="map"] {
+  transform: translateY(-6px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Finger statt Maus (Handy, Tablet, App): Tippziele mindestens 44 px (Apple HIG / Android 48 dp) */
+@media (pointer: coarse) {
+  .btn {
+    min-height: 44px;
+  }
+  .chip {
+    min-height: 44px;
+    padding: 0 15px;
+  }
+}

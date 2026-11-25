@@ -36,6 +36,28 @@ tools/bundle.py     alles in eine Datei packen      → index.html
 Neuer Fahrplan: Minuten-Offsets in `tools/build.py` (`L = {...}`) und Rundenstarts (`rounds`) anpassen,
 dann `python3 tools/build.py && python3 tools/bundle.py`.
 
+## Neue App (`web/`) – Live-Karte im Graphit-Design
+
+Eigenständige Next.js-App (statischer Export, läuft auf jedem Webspace) mit derselben Datenquelle `data/network.json`.
+
+- Haltestelle suchen oder „Nähe“ → nächste Abfahrten → Abfahrt antippen → Bus live verfolgen
+  („Strecke“ von oben oder „Mitfahren 3D“ mit Gelände). Direktlinks: `/?halt=hauptstr`, `/?linie=3`
+- Fährt der Bus gerade nicht, spielt die Seite den nächsten Betriebstag im Zeitraffer ab (Pause/Echtzeit)
+- 3D-Bus (schlichter Kleinbus aus Grundformen, keine Marken) und 3D-Haltestellenschilder (three.js)
+- Feiertage Baden-Württemberg werden berechnet (kein Betrieb)
+- QR-Aushänge je Haltestelle zum Drucken: `/aushang` (Ziel-Adresse über `NEXT_PUBLIC_SITE_URL`)
+- Karte ohne API-Schlüssel: **Luftbild** = Orthophotos 20 cm des LGL BW, einmalig für das Bediengebiet
+  vorberechnet (`npm run luftbild`, z12–z18, ca. 26 MB in `web/public/luftbild`, Lizenz dl-de/by-2-0),
+  darüber Straßennamen von OpenFreeMap; **Karte** = OpenFreeMap (OSM); Gelände: Terrain Tiles (AWS Open Data)
+
+```
+cd web
+npm install
+npm run dev        # http://localhost:5610
+npm run build      # statische Seite in web/out
+npm run luftbild   # nur nötig, wenn sich das Bediengebiet ändert
+```
+
 ## Offene Punkte – bitte mit dem Bürgerbus-Team klären
 
 1. **Lage dieser 13 Haltestellen ist geschätzt** (auf der Karte gestrichelt):

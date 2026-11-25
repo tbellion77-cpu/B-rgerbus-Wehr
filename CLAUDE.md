@@ -3,8 +3,9 @@
 Digitale Fahrgastinformation für den ehrenamtlichen Bürgerbus der Stadt Wehr (Baden).
 
 - Phase 1 (fertig): Karte + Fahrplan-Simulation, siehe README.md
+- Neue App in `web/` (Next.js, Graphit-Design, 3D-Bus, Luftbild): Fahrplan-Logik in `web/src/lib/fahrplan.ts`, Daten weiter nur aus `data/network.json`
 - Phase 2: Live-GPS (Tracker → Server → WebSocket → Karte)
-- Phase 3: 3D-Fahrzeug auf der Karte
+- Phase 3: 3D-Fahrzeug auf der Karte (in `web/` umgesetzt)
 
 ## Regeln
 - Zielgruppe sind oft ältere Fahrgäste: große Schrift, hoher Kontrast, einfache Sprache, alles auf Deutsch.
